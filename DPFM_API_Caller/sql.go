@@ -20,6 +20,9 @@ func (c *DPFMAPICaller) readSqlProcess(
 ) interface{} {
 	var general *dpfm_api_output_formatter.General
 	var role *dpfm_api_output_formatter.Role
+	var finInst *dpfm_api_output_formatter.FinInst
+	var relationship *dpfm_api_output_formatter.Relationship
+	var accounting *dpfm_api_output_formatter.Accounting
 	for _, fn := range accepter {
 		switch fn {
 		case "General":
@@ -30,13 +33,28 @@ func (c *DPFMAPICaller) readSqlProcess(
 			func() {
 				role = c.Role(mtx, input, output, errs, log)
 			}()
+		case "FinInst":
+			func() {
+				finInst = c.FinInst(mtx, input, output, errs, log)
+			}()
+		case "Relationship":
+			func() {
+				relationship = c.Relationship(mtx, input, output, errs, log)
+			}()
+		case "Accounting":
+			func() {
+				accounting = c.Accounting(mtx, input, output, errs, log)
+			}()
 		default:
 		}
 	}
 
 	data := &dpfm_api_output_formatter.Message{
-		General: general,
-		Role:    role,
+		General:      general,
+		Role:         role,
+		FinInst:      finInst,
+		Relationship: relationship,
+		Accounting:   accounting,
 	}
 
 	return data
@@ -98,37 +116,6 @@ func (c *DPFMAPICaller) Role(
 	}
 
 	data, err := dpfm_api_output_formatter.ConvertToRole(input, rows)
-	if err != nil {
-		*errs = append(*errs, err)
-		return nil
-	}
-
-	return data
-}
-
-func (c *DPFMAPICaller) GeneralPDF(
-	mtx *sync.Mutex,
-	input *dpfm_api_input_reader.SDC,
-	output *dpfm_api_output_formatter.SDC,
-	errs *[]error,
-	log *logger.Logger,
-) *dpfm_api_output_formatter.GeneralPDF {
-	businessPartner := input.General.BusinessPartner
-	docType := input.General.GeneralPDF.DocType
-	docVersionID := input.General.GeneralPDF.DocVersionID
-	docID := input.General.GeneralPDF.DocID
-
-	rows, err := c.db.Query(
-		`SELECT BusinessPartner, DocType, DocVersionID, DocID, DocIssuerBusinessPartner, FileName
-		FROM DataPlatformMastersAndTransactionsMysqlKube.data_platform_business_partner_general_pdf_data
-		WHERE (BusinessPartner, DocType, DocVersionID, DocID) = (?, ?, ?, ?);`, businessPartner, docType, docVersionID, docID,
-	)
-	if err != nil {
-		*errs = append(*errs, err)
-		return nil
-	}
-
-	data, err := dpfm_api_output_formatter.ConvertToGeneralPDF(input, rows)
 	if err != nil {
 		*errs = append(*errs, err)
 		return nil
