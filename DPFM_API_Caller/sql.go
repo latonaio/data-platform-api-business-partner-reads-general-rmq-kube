@@ -4,6 +4,7 @@ import (
 	"context"
 	dpfm_api_input_reader "data-platform-api-business-partner-reads-general-rmq-kube/DPFM_API_Input_Reader"
 	dpfm_api_output_formatter "data-platform-api-business-partner-reads-general-rmq-kube/DPFM_API_Output_Formatter"
+	"strings"
 	"sync"
 
 	"github.com/latonaio/golang-logging-library-for-data-platform/logger"
@@ -19,6 +20,7 @@ func (c *DPFMAPICaller) readSqlProcess(
 	log *logger.Logger,
 ) interface{} {
 	var general *dpfm_api_output_formatter.General
+	var generals *[]dpfm_api_output_formatter.General
 	var role *dpfm_api_output_formatter.Role
 	var finInst *dpfm_api_output_formatter.FinInst
 	var relationship *dpfm_api_output_formatter.Relationship
@@ -28,6 +30,10 @@ func (c *DPFMAPICaller) readSqlProcess(
 		case "General":
 			func() {
 				general = c.General(mtx, input, output, errs, log)
+			}()
+		case "Generals":
+			func() {
+				generals = c.Generals(mtx, input, output, errs, log)
 			}()
 		case "Role":
 			func() {
@@ -51,6 +57,7 @@ func (c *DPFMAPICaller) readSqlProcess(
 
 	data := &dpfm_api_output_formatter.Message{
 		General:      general,
+		Generals:     generals,
 		Role:         role,
 		FinInst:      finInst,
 		Relationship: relationship,
@@ -72,10 +79,10 @@ func (c *DPFMAPICaller) General(
 	rows, err := c.db.Query(
 		`SELECT BusinessPartner, BusinessPartnerFullName, BusinessPartnerName, CreationDate, CreationTime, 
 		Industry, LegalEntityRegistration, Country, Language, Currency, LastChangeDate, LastChangeTime, 
-		OrganizationBPName1, OrganizationBPName2, OrganizationBPName3, OrganizationBPName4, BPGroup1, 
-		BPGroup2, BPGroup3, BPGroup4, BPGroup5, OrganizationFoundationDate, OrganizationLiquidationDate, 
-		SearchTerm1, SearchTerm2, BusinessPartnerBirthplaceName, BusinessPartnerDeathDate, BusinessPartnerIsBlocked, 
-		GroupBusinessPartnerName1, GroupBusinessPartnerName2, AddressID, BusinessPartnerIDByExtSystem, IsMarkedForDeletion
+		OrganizationBPName1, OrganizationBPName2, OrganizationBPName3, OrganizationBPName4, BPTag1, BPTag2, 
+		BPTag3, BPTag4, OrganizationFoundationDate, OrganizationLiquidationDate, BusinessPartnerBirthplaceName, 
+		BusinessPartnerDeathDate, BusinessPartnerIsBlocked, GroupBusinessPartnerName1, GroupBusinessPartnerName2, 
+		AddressID, BusinessPartnerIDByExtSystem, IsMarkedForDeletion
 		FROM DataPlatformMastersAndTransactionsMysqlKube.data_platform_business_partner_general_data
 		WHERE BusinessPartner = ?;`, businessPartner,
 	)
@@ -83,8 +90,50 @@ func (c *DPFMAPICaller) General(
 		*errs = append(*errs, err)
 		return nil
 	}
+	defer rows.Close()
 
-	data, err := dpfm_api_output_formatter.ConvertToGeneral(input, rows)
+	data, err := dpfm_api_output_formatter.ConvertToGeneral(rows)
+	if err != nil {
+		*errs = append(*errs, err)
+		return nil
+	}
+
+	return data
+}
+
+func (c *DPFMAPICaller) Generals(
+	mtx *sync.Mutex,
+	input *dpfm_api_input_reader.SDC,
+	output *dpfm_api_output_formatter.SDC,
+	errs *[]error,
+	log *logger.Logger,
+) *[]dpfm_api_output_formatter.General {
+	var args []interface{}
+	businessPartners := input.Generals.BusinessPartners
+	cnt := 0
+	for _, v := range businessPartners {
+		args = append(args, v)
+		cnt++
+	}
+	repeat := strings.Repeat("?,", cnt-1) + "?"
+
+	rows, err := c.db.Query(
+		`SELECT BusinessPartner, BusinessPartnerFullName, BusinessPartnerName, CreationDate, CreationTime, 
+		Industry, LegalEntityRegistration, Country, Language, Currency, LastChangeDate, LastChangeTime, 
+		OrganizationBPName1, OrganizationBPName2, OrganizationBPName3, OrganizationBPName4, OrganizationFoundationDate,
+		OrganizationLiquidationDate, BusinessPartnerBirthplaceName, 
+		BusinessPartnerDeathDate, BusinessPartnerIsBlocked, GroupBusinessPartnerName1, GroupBusinessPartnerName2, 
+		AddressID, BusinessPartnerIDByExtSystem, IsMarkedForDeletion
+		FROM DataPlatformMastersAndTransactionsMysqlKube.data_platform_business_partner_general_data
+		WHERE BusinessPartner IN ( `+repeat+` ) ;`, args...,
+	)
+	if err != nil {
+		*errs = append(*errs, err)
+		return nil
+	}
+	defer rows.Close()
+
+	data, err := dpfm_api_output_formatter.ConvertToGenerals(rows)
 	if err != nil {
 		*errs = append(*errs, err)
 		return nil
@@ -114,8 +163,9 @@ func (c *DPFMAPICaller) Role(
 		*errs = append(*errs, err)
 		return nil
 	}
+	defer rows.Close()
 
-	data, err := dpfm_api_output_formatter.ConvertToRole(input, rows)
+	data, err := dpfm_api_output_formatter.ConvertToRole(rows)
 	if err != nil {
 		*errs = append(*errs, err)
 		return nil
@@ -137,9 +187,9 @@ func (c *DPFMAPICaller) FinInst(
 	validityStartDate := input.General.FinInst.ValidityStartDate
 
 	rows, err := c.db.Query(
-		`SELECT BusinessPartner, FinInstIdentification, ValidityEndDate, ValidityStartDate, FinInstCountry, 
-		FinInstNumber, FinInstName, FinInstBranchName, SWIFTCode, InternalFinInstCustomerID, InternalFinInstAccountID, 
-		FinInstControlKey, FinInstAccountName, FinInstAccount, IsMarkedForDeletion
+		`SELECT BusinessPartner, FinInstIdentification, ValidityEndDate, ValidityStartDate, FinInstCountry, FinInstCode, 
+		FinInstBranchCode, FinInstFullCode, FinInstName, FinInstBranchName, SWIFTCode, InternalFinInstCustomerID, 
+		InternalFinInstAccountID, FinInstControlKey, FinInstAccountName, FinInstAccount, HouseBank, HouseBankAccount, IsMarkedForDeletion
 		FROM DataPlatformMastersAndTransactionsMysqlKube.data_platform_business_partner_general_fin_inst_data
 		WHERE (BusinessPartner, FinInstIdentification, ValidityEndDate, ValidityStartDate) = (?, ?, ?, ?);`, businessPartner, finInstIdentification, validityEndDate, validityStartDate,
 	)
@@ -147,8 +197,9 @@ func (c *DPFMAPICaller) FinInst(
 		*errs = append(*errs, err)
 		return nil
 	}
+	defer rows.Close()
 
-	data, err := dpfm_api_output_formatter.ConvertToFinInst(input, rows)
+	data, err := dpfm_api_output_formatter.ConvertToFinInst(rows)
 	if err != nil {
 		*errs = append(*errs, err)
 		return nil
@@ -179,8 +230,9 @@ func (c *DPFMAPICaller) Relationship(
 		*errs = append(*errs, err)
 		return nil
 	}
+	defer rows.Close()
 
-	data, err := dpfm_api_output_formatter.ConvertToRelationship(input, rows)
+	data, err := dpfm_api_output_formatter.ConvertToRelationship(rows)
 	if err != nil {
 		*errs = append(*errs, err)
 		return nil
@@ -207,8 +259,9 @@ func (c *DPFMAPICaller) Accounting(
 		*errs = append(*errs, err)
 		return nil
 	}
+	defer rows.Close()
 
-	data, err := dpfm_api_output_formatter.ConvertToAccounting(input, rows)
+	data, err := dpfm_api_output_formatter.ConvertToAccounting(rows)
 	if err != nil {
 		*errs = append(*errs, err)
 		return nil

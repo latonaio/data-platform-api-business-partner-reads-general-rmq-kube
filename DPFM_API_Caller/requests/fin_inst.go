@@ -6,7 +6,9 @@ type FinInst struct {
 	ValidityEndDate           string  `json:"ValidityEndDate"`
 	ValidityStartDate         string  `json:"ValidityStartDate"`
 	FinInstCountry            *string `json:"FinInstCountry"`
-	FinInstNumber             *string `json:"FinInstNumber"`
+	FinInstCode               *string `json:"FinInstCode"`
+	FinInstBranchCode         *string `json:"FinInstBranchCode"`
+	FinInstFullCode           *string `json:"FinInstFullCode"`
 	FinInstName               *string `json:"FinInstName"`
 	FinInstBranchName         *string `json:"FinInstBranchName"`
 	SWIFTCode                 *string `json:"SWIFTCode"`
@@ -15,5 +17,7 @@ type FinInst struct {
 	FinInstControlKey         *string `json:"FinInstControlKey"`
 	FinInstAccountName        *string `json:"FinInstAccountName"`
 	FinInstAccount            *string `json:"FinInstAccount"`
+	HouseBank                 *string `json:"HouseBank"`
+	HouseBankAccount          *string `json:"HouseBankAccount"`
 	IsMarkedForDeletion       *bool   `json:"IsMarkedForDeletion"`
 }

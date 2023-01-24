@@ -64,6 +64,7 @@ type SDC struct {
 	ServiceLabel      string   `json:"service_label"`
 	APIType           string   `json:"api_type"`
 	General           General  `json:"BusinessPartnerGeneral"`
+	Generals          Generals `json:"BusinessPartnerGenerals"`
 	APISchema         string   `json:"api_schema"`
 	Accepter          []string `json:"accepter"`
 	Deleted           bool     `json:"deleted"`
@@ -86,15 +87,12 @@ type General struct {
 	OrganizationBPName2           *string      `json:"OrganizationBPName2"`
 	OrganizationBPName3           *string      `json:"OrganizationBPName3"`
 	OrganizationBPName4           *string      `json:"OrganizationBPName4"`
-	BPGroup1                      *string      `json:"BPGroup1"`
-	BPGroup2                      *string      `json:"BPGroup2"`
-	BPGroup3                      *string      `json:"BPGroup3"`
-	BPGroup4                      *string      `json:"BPGroup4"`
-	BPGroup5                      *string      `json:"BPGroup5"`
+	BPTag1                        *string      `json:"BPTag1"`
+	BPTag2                        *string      `json:"BPTag2"`
+	BPTag3                        *string      `json:"BPTag3"`
+	BPTag4                        *string      `json:"BPTag4"`
 	OrganizationFoundationDate    *string      `json:"OrganizationFoundationDate"`
 	OrganizationLiquidationDate   *string      `json:"OrganizationLiquidationDate"`
-	SearchTerm1                   *string      `json:"SearchTerm1"`
-	SearchTerm2                   *string      `json:"SearchTerm2"`
 	BusinessPartnerBirthplaceName *string      `json:"BusinessPartnerBirthplaceName"`
 	BusinessPartnerDeathDate      *string      `json:"BusinessPartnerDeathDate"`
 	BusinessPartnerIsBlocked      *bool        `json:"BusinessPartnerIsBlocked"`
@@ -108,6 +106,9 @@ type General struct {
 	FinInst                       FinInst      `json:"FinInst"`
 	Relationship                  Relationship `json:"Relationship"`
 	Accounting                    Accounting   `json:"Accounting"`
+}
+type Generals struct {
+	BusinessPartners []int `json:"BusinessPartners"`
 }
 
 type GeneralPDF struct {
@@ -132,7 +133,9 @@ type FinInst struct {
 	ValidityEndDate           string  `json:"ValidityEndDate"`
 	ValidityStartDate         string  `json:"ValidityStartDate"`
 	FinInstCountry            *string `json:"FinInstCountry"`
-	FinInstNumber             *string `json:"FinInstNumber"`
+	FinInstCode               *string `json:"FinInstCode"`
+	FinInstBranchCode         *string `json:"FinInstBranchCode"`
+	FinInstFullCode           *string `json:"FinInstFullCode"`
 	FinInstName               *string `json:"FinInstName"`
 	FinInstBranchName         *string `json:"FinInstBranchName"`
 	SWIFTCode                 *string `json:"SWIFTCode"`
@@ -141,6 +144,8 @@ type FinInst struct {
 	FinInstControlKey         *string `json:"FinInstControlKey"`
 	FinInstAccountName        *string `json:"FinInstAccountName"`
 	FinInstAccount            *string `json:"FinInstAccount"`
+	HouseBank                 *string `json:"HouseBank"`
+	HouseBankAccount          *string `json:"HouseBankAccount"`
 	IsMarkedForDeletion       *bool   `json:"IsMarkedForDeletion"`
 }
 
